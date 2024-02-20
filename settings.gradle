@@ -1,2 +1,0 @@
-include ':app', ':paroyalty'
-rootProject.name='test-paroyalty'
