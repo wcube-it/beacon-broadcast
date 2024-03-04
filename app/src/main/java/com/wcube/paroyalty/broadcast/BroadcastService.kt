@@ -13,12 +13,18 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.annotation.Nullable
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import java.util.UUID
 
 class BroadcastService : Service() {
+    val ACTION_UUID_SERVICE: String = "${BroadcastService::class.java.name}_UUIDBROADCAST"
+
     private lateinit var mBluetoothAdapter: BluetoothAdapter;
     private lateinit var advertiser: BluetoothLeAdvertiser;
     private var mAdvertiseCallback: AdvertiseCallback? = null
     private var mStoreId = 100
+    private var started = false;
+    private val randomUUID = UUID.randomUUID()
 
     override fun onCreate() {
         super.onCreate()
@@ -57,6 +63,7 @@ class BroadcastService : Service() {
         super.onDestroy()
 
         if (advertiser != null) {
+            started = false;
             var mAdvertiseCallback = object : AdvertiseCallback() {
                 override fun onStartSuccess(settingsInEffect: AdvertiseSettings) {
                     super.onStartSuccess(settingsInEffect)
@@ -80,8 +87,15 @@ class BroadcastService : Service() {
     private fun registerBeaconBroadcast() {
         Log.d("beacon", "start to deliver beacon")
 
-        val stringUUID: String = "f7826da6-4fa2-4e98-8024-bc5b71e0893e"
-        startBroadCast(stringUUID)
+        // TODO: get data from sdcard
+        if (started) return;
+
+        // inform main activity
+        val intent = Intent(ACTION_UUID_SERVICE)
+        intent.putExtra("UUID", randomUUID.toString())
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+
+        startBroadCast(randomUUID.toString())
     }
 
     @SuppressLint("MissingPermission")
@@ -91,7 +105,8 @@ class BroadcastService : Service() {
         mAdvertiseCallback = object : AdvertiseCallback() {
             override fun onStartSuccess(settingsInEffect: AdvertiseSettings) {
                 super.onStartSuccess(settingsInEffect)
-                Log.d("beacon", "beacon start success:");
+                started = true;
+                Log.d("beacon", "beacon start success delivering "+ uuid);
             }
 
             override fun onStartFailure(errorCode: Int) {
